@@ -40,7 +40,8 @@ fn nizk_prove_benchmark<G: CurveGroup>(c: &mut Criterion) {
           black_box(&inputs),
           black_box(&gens),
           black_box(&mut prover_transcript),
-        );
+        )
+        .unwrap();
       });
     });
     group.finish();
@@ -63,7 +64,7 @@ fn nizk_verify_benchmark<G: CurveGroup>(c: &mut Criterion) {
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"example");
-    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript);
+    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript).unwrap();
 
     let name = format!("NIZK_verify_{}", num_cons);
     group.bench_function(&name, move |b| {

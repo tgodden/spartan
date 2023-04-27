@@ -28,7 +28,7 @@ fn snark_encode_benchmark<G: CurveGroup>(c: &mut Criterion) {
     let name = format!("SNARK_encode_{}", num_cons);
     group.bench_function(&name, move |b| {
       b.iter(|| {
-        SNARK::encode(black_box(&inst), black_box(&gens));
+        SNARK::encode(black_box(&inst), black_box(&gens)).unwrap();
       });
     });
     group.finish();
@@ -52,7 +52,7 @@ fn snark_prove_benchmark<G: CurveGroup>(c: &mut Criterion) {
     let gens = SNARKGens::<G>::new(num_cons, num_vars, num_inputs, num_cons);
 
     // produce a commitment to R1CS instance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).unwrap();
 
     // produce a proof
     let name = format!("SNARK_prove_{}", num_cons);
@@ -67,7 +67,8 @@ fn snark_prove_benchmark<G: CurveGroup>(c: &mut Criterion) {
           black_box(&inputs),
           black_box(&gens),
           black_box(&mut prover_transcript),
-        );
+        )
+        .unwrap();
       });
     });
     group.finish();
@@ -90,7 +91,7 @@ fn snark_verify_benchmark<G: CurveGroup>(c: &mut Criterion) {
     let gens = SNARKGens::<G>::new(num_cons, num_vars, num_inputs, num_cons);
 
     // produce a commitment to R1CS instance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).unwrap();
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"example");
@@ -102,7 +103,8 @@ fn snark_verify_benchmark<G: CurveGroup>(c: &mut Criterion) {
       &inputs,
       &gens,
       &mut prover_transcript,
-    );
+    )
+    .unwrap();
 
     // verify the proof
     let name = format!("SNARK_verify_{}", num_cons);

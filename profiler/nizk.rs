@@ -34,7 +34,7 @@ pub fn main() {
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"nizk_example");
-    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript);
+    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript).unwrap();
 
     let mut proof_encoded = vec![];
     proof.serialize_compressed(&mut proof_encoded).unwrap();

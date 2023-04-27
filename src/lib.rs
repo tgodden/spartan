@@ -301,17 +301,20 @@ impl<G: CurveGroup> SNARK<G> {
   pub fn encode(
     inst: &Instance<G::ScalarField>,
     gens: &SNARKGens<G>,
-  ) -> (
-    ComputationCommitment<G>,
-    ComputationDecommitment<G::ScalarField>,
-  ) {
-    let timer_encode = Timer::new("SNARK::encode");
-    let (comm, decomm) = inst.inst.commit(&gens.gens_r1cs_eval);
-    timer_encode.stop();
+  ) -> Result<
     (
+      ComputationCommitment<G>,
+      ComputationDecommitment<G::ScalarField>,
+    ),
+    ProofVerifyError,
+  > {
+    let timer_encode = Timer::new("SNARK::encode");
+    let (comm, decomm) = inst.inst.commit(&gens.gens_r1cs_eval)?;
+    timer_encode.stop();
+    Ok((
       ComputationCommitment { comm },
       ComputationDecommitment { decomm },
-    )
+    ))
   }
 
   /// A method to produce a SNARK proof of the satisfiability of an R1CS instance
@@ -323,7 +326,7 @@ impl<G: CurveGroup> SNARK<G> {
     inputs: &InputsAssignment<G::ScalarField>,
     gens: &SNARKGens<G>,
     transcript: &mut Transcript,
-  ) -> Self {
+  ) -> Result<Self, ProofVerifyError> {
     let timer_prove = Timer::new("SNARK::prove");
 
     // we create a Transcript object seeded with a random F
@@ -355,7 +358,7 @@ impl<G: CurveGroup> SNARK<G> {
           &gens.gens_r1cs_sat,
           transcript,
           &mut random_tape,
-        )
+        )?
       };
 
       let mut proof_encoded = vec![];
@@ -387,7 +390,7 @@ impl<G: CurveGroup> SNARK<G> {
         &gens.gens_r1cs_eval,
         transcript,
         &mut random_tape,
-      );
+      )?;
 
       let mut proof_encoded = vec![];
       proof.serialize_compressed(&mut proof_encoded).unwrap();
@@ -397,11 +400,11 @@ impl<G: CurveGroup> SNARK<G> {
     };
 
     timer_prove.stop();
-    SNARK {
+    Ok(SNARK {
       r1cs_sat_proof,
       inst_evals,
       r1cs_eval_proof,
-    }
+    })
   }
 
   /// A method to verify the SNARK proof of the satisfiability of an R1CS instance
@@ -492,7 +495,7 @@ impl<G: CurveGroup> NIZK<G> {
     input: &InputsAssignment<G::ScalarField>,
     gens: &NIZKGens<G>,
     transcript: &mut Transcript,
-  ) -> Self {
+  ) -> Result<Self, ProofVerifyError> {
     let timer_prove = Timer::new("NIZK::prove");
     // we create a Transcript object seeded with a random F
     // to aid the prover produce its randomness
@@ -525,7 +528,7 @@ impl<G: CurveGroup> NIZK<G> {
         &gens.gens_r1cs_sat,
         transcript,
         &mut random_tape,
-      );
+      )?;
 
       let mut proof_encoded = vec![];
       proof.serialize_compressed(&mut proof_encoded).unwrap();
@@ -535,10 +538,10 @@ impl<G: CurveGroup> NIZK<G> {
     };
 
     timer_prove.stop();
-    NIZK {
+    Ok(NIZK {
       r1cs_sat_proof,
       r: (rx, ry),
-    }
+    })
   }
 
   /// A method to verify a NIZK proof of the satisfiability of an R1CS instance
@@ -610,7 +613,7 @@ mod tests {
     let (inst, vars, inputs) = Instance::produce_synthetic_r1cs(num_cons, num_vars, num_inputs);
 
     // create a commitment to R1CSInstance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).unwrap();
 
     // produce a proof
     let mut prover_transcript = Transcript::new(b"example");
@@ -622,7 +625,8 @@ mod tests {
       &inputs,
       &gens,
       &mut prover_transcript,
-    );
+    )
+    .unwrap();
 
     // verify the proof
     let mut verifier_transcript = Transcript::new(b"example");
@@ -723,7 +727,7 @@ mod tests {
     let gens = SNARKGens::<G>::new(num_cons, num_vars, num_inputs, num_non_zero_entries);
 
     // create a commitment to the R1CS instance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).unwrap();
 
     // produce a SNARK
     let mut prover_transcript = Transcript::new(b"snark_example");
@@ -735,7 +739,8 @@ mod tests {
       &assignment_inputs,
       &gens,
       &mut prover_transcript,
-    );
+    )
+    .unwrap();
 
     // verify the SNARK
     let mut verifier_transcript = Transcript::new(b"snark_example");
@@ -754,7 +759,8 @@ mod tests {
       &assignment_inputs,
       &gens,
       &mut prover_transcript,
-    );
+    )
+    .unwrap();
 
     // verify the NIZK
     let mut verifier_transcript = Transcript::new(b"nizk_example");

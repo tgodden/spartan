@@ -77,12 +77,15 @@ impl<G: CurveGroup> R1CSProof<G> {
     gens: &R1CSSumcheckGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (
-    ZKSumcheckInstanceProof<G>,
-    Vec<G::ScalarField>,
-    Vec<G::ScalarField>,
-    G::ScalarField,
-  ) {
+  ) -> Result<
+    (
+      ZKSumcheckInstanceProof<G>,
+      Vec<G::ScalarField>,
+      Vec<G::ScalarField>,
+      G::ScalarField,
+    ),
+    ProofVerifyError,
+  > {
     let comb_func =
       |poly_A_comp: &G::ScalarField,
        poly_B_comp: &G::ScalarField,
@@ -104,9 +107,9 @@ impl<G: CurveGroup> R1CSProof<G> {
         &gens.gens_4,
         transcript,
         random_tape,
-      );
+      )?;
 
-    (sc_proof_phase_one, r, claims, blind_claim_postsc)
+    Ok((sc_proof_phase_one, r, claims, blind_claim_postsc))
   }
 
   #[allow(clippy::type_complexity)]
@@ -119,12 +122,15 @@ impl<G: CurveGroup> R1CSProof<G> {
     gens: &R1CSSumcheckGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (
-    ZKSumcheckInstanceProof<G>,
-    Vec<G::ScalarField>,
-    Vec<G::ScalarField>,
-    G::ScalarField,
-  ) {
+  ) -> Result<
+    (
+      ZKSumcheckInstanceProof<G>,
+      Vec<G::ScalarField>,
+      Vec<G::ScalarField>,
+      G::ScalarField,
+    ),
+    ProofVerifyError,
+  > {
     let comb_func = |poly_A_comp: &G::ScalarField,
                      poly_B_comp: &G::ScalarField|
      -> G::ScalarField { *poly_A_comp * *poly_B_comp };
@@ -139,9 +145,9 @@ impl<G: CurveGroup> R1CSProof<G> {
       &gens.gens_3,
       transcript,
       random_tape,
-    );
+    )?;
 
-    (sc_proof_phase_two, r, claims, blind_claim_postsc)
+    Ok((sc_proof_phase_two, r, claims, blind_claim_postsc))
   }
 
   fn protocol_name() -> &'static [u8] {
@@ -155,7 +161,7 @@ impl<G: CurveGroup> R1CSProof<G> {
     gens: &R1CSGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (R1CSProof<G>, Vec<G::ScalarField>, Vec<G::ScalarField>) {
+  ) -> Result<(R1CSProof<G>, Vec<G::ScalarField>, Vec<G::ScalarField>), ProofVerifyError> {
     let timer_prove = Timer::new("R1CSProof::prove");
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
@@ -171,7 +177,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       let poly_vars = DensePolynomial::<G::ScalarField>::new(vars.clone());
 
       // produce a commitment to the satisfying assignment
-      let (comm_vars, blinds_vars) = poly_vars.commit(&gens.gens_pc, Some(random_tape));
+      let (comm_vars, blinds_vars) = poly_vars.commit(&gens.gens_pc, Some(random_tape))?;
 
       // add the commitment to the prover's transcript
       comm_vars.append_to_transcript(b"poly_commitment", transcript);
@@ -217,7 +223,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       &gens.gens_sc,
       transcript,
       random_tape,
-    );
+    )?;
     assert_eq!(poly_tau.len(), 1);
     assert_eq!(poly_Az.len(), 1);
     assert_eq!(poly_Bz.len(), 1);
@@ -312,7 +318,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       &gens.gens_sc,
       transcript,
       random_tape,
-    );
+    )?;
     timer_sc_proof_phase2.stop();
 
     let timer_polyeval = Timer::new("polyeval");
@@ -327,7 +333,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       &gens.gens_pc,
       transcript,
       random_tape,
-    );
+    )?;
     timer_polyeval.stop();
 
     // prove the final step of sum-check #2
@@ -346,7 +352,7 @@ impl<G: CurveGroup> R1CSProof<G> {
 
     timer_prove.stop();
 
-    (
+    Ok((
       R1CSProof {
         comm_vars,
         sc_proof_phase1,
@@ -365,7 +371,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       },
       rx,
       ry,
-    )
+    ))
   }
 
   #[allow(clippy::type_complexity)]
@@ -457,7 +463,8 @@ impl<G: CurveGroup> R1CSProof<G> {
 
     let bases_affine = G::normalize_batch(bases.as_ref());
 
-    let comm_claim_phase2 = VariableBaseMSM::msm(bases_affine.as_ref(), scalars.as_ref()).unwrap();
+    let comm_claim_phase2 = VariableBaseMSM::msm(bases_affine.as_ref(), scalars.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)?;
 
     // verify the joint claim with a sum-check protocol
     let (comm_claim_post_phase2, ry) = self.sc_proof_phase2.verify(
@@ -500,7 +507,8 @@ impl<G: CurveGroup> R1CSProof<G> {
         .into_affine(),
     ];
 
-    let comm_eval_Z_at_ry: G = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap();
+    let comm_eval_Z_at_ry: G = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)?;
 
     // perform the final check in the second sum-check protocol
     let (eval_A_r, eval_B_r, eval_C_r) = evals;
@@ -629,7 +637,8 @@ mod tests {
       &gens,
       &mut prover_transcript,
       &mut random_tape,
-    );
+    )
+    .unwrap();
 
     let inst_evals = inst.evaluate(&rx, &ry);
 

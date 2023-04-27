@@ -1,4 +1,5 @@
 use super::commitments::{Commitments, MultiCommitGens};
+use super::errors::ProofVerifyError;
 use super::transcript::{AppendToTranscript, ProofTranscript};
 use ark_ec::CurveGroup;
 use ark_ff::PrimeField;
@@ -87,7 +88,11 @@ impl<F: PrimeField> UniPoly<F> {
     }
   }
 
-  pub fn commit<G: CurveGroup<ScalarField = F>>(&self, gens: &MultiCommitGens<G>, blind: &F) -> G {
+  pub fn commit<G: CurveGroup<ScalarField = F>>(
+    &self,
+    gens: &MultiCommitGens<G>,
+    blind: &F,
+  ) -> Result<G, ProofVerifyError> {
     Commitments::batch_commit(&self.coeffs, blind, gens)
   }
 }

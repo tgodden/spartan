@@ -39,7 +39,7 @@ impl<G: CurveGroup> BulletReductionProof<G> {
     b_vec: &[G::ScalarField],
     blind: &G::ScalarField,
     blinds_vec: &[(G::ScalarField, G::ScalarField)],
-  ) -> (Self, G, G::ScalarField, G::ScalarField, G, G::ScalarField) {
+  ) -> Result<(Self, G, G::ScalarField, G::ScalarField, G, G::ScalarField), ProofVerifyError> {
     // Create slices G, H, a, b backed by their respective
     // vectors.  This lets us reslice as we compress the lengths
     // of the vectors in the main loop below.
@@ -90,7 +90,8 @@ impl<G: CurveGroup> BulletReductionProof<G> {
 
       let bases = G::normalize_batch(bases.as_ref());
 
-      let L = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap();
+      let L = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref())
+        .map_err(|_| ProofVerifyError::InternalError)?;
 
       let scalars = a_R
         .iter()
@@ -108,7 +109,8 @@ impl<G: CurveGroup> BulletReductionProof<G> {
 
       let bases = G::normalize_batch(bases.as_ref());
 
-      let R = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap();
+      let R = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref())
+        .map_err(|_| ProofVerifyError::InternalError)?;
 
       <Transcript as ProofTranscript<G>>::append_point(transcript, b"L", &L);
       <Transcript as ProofTranscript<G>>::append_point(transcript, b"R", &R);
@@ -136,14 +138,14 @@ impl<G: CurveGroup> BulletReductionProof<G> {
 
     let Gamma_hat = G[0] * a[0] + *Q * a[0] * b[0] + *H * blind_fin;
 
-    (
+    Ok((
       BulletReductionProof { L_vec, R_vec },
       Gamma_hat,
       a[0],
       b[0],
       G[0],
       blind_fin,
-    )
+    ))
   }
 
   /// Computes three vectors of verification scalars \\([u\_{i}^{2}]\\), \\([u\_{i}^{-2}]\\) and \\([s\_{i}]\\) for combined multiscalar multiplication
@@ -228,7 +230,8 @@ impl<G: CurveGroup> BulletReductionProof<G> {
 
     let group_element = G::normalize_batch(G);
 
-    let G_hat = VariableBaseMSM::msm(group_element.as_ref(), s.as_ref()).unwrap();
+    let G_hat = VariableBaseMSM::msm(group_element.as_ref(), s.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)?;
 
     let a_hat = inner_product(a, &s);
 
@@ -243,7 +246,8 @@ impl<G: CurveGroup> BulletReductionProof<G> {
       .chain([G::ScalarField::one()])
       .collect::<Vec<_>>();
 
-    let Gamma_hat = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap();
+    let Gamma_hat = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)?;
 
     Ok((G_hat, Gamma_hat, a_hat))
   }

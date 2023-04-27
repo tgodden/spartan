@@ -147,7 +147,11 @@ impl<F: PrimeField> DensePolynomial<F> {
   }
 
   #[cfg(feature = "multicore")]
-  fn commit_inner(&self, blinds: &[F], gens: &MultiCommitGens) -> PolyCommitment {
+  fn commit_inner(
+    &self,
+    blinds: &[F],
+    gens: &MultiCommitGens,
+  ) -> Result<PolyCommitment, ProofVerifyError> {
     let L_size = blinds.len();
     let R_size = self.Z.len() / L_size;
     assert_eq!(L_size * R_size, self.Z.len());
@@ -158,8 +162,8 @@ impl<F: PrimeField> DensePolynomial<F> {
           .commit(&blinds[i], gens)
           .compress()
       })
-      .collect();
-    PolyCommitment { C }
+      .collect::<Result<_, _>>()?;
+    Ok(PolyCommitment { C })
   }
 
   #[cfg(not(feature = "multicore"))]
@@ -167,7 +171,7 @@ impl<F: PrimeField> DensePolynomial<F> {
     &self,
     blinds: &[F],
     gens: &MultiCommitGens<G>,
-  ) -> PolyCommitment<G> {
+  ) -> Result<PolyCommitment<G>, ProofVerifyError> {
     let L_size = blinds.len();
     let R_size = self.Z.len() / L_size;
     assert_eq!(L_size * R_size, self.Z.len());
@@ -179,15 +183,15 @@ impl<F: PrimeField> DensePolynomial<F> {
           gens,
         )
       })
-      .collect();
-    PolyCommitment { C }
+      .collect::<Result<_, _>>()?;
+    Ok(PolyCommitment { C })
   }
 
   pub fn commit<G>(
     &self,
     gens: &PolyCommitmentGens<G>,
     random_tape: Option<&mut RandomTape<G>>,
-  ) -> (PolyCommitment<G>, PolyCommitmentBlinds<F>)
+  ) -> Result<(PolyCommitment<G>, PolyCommitmentBlinds<F>), ProofVerifyError>
   where
     G: CurveGroup<ScalarField = F>,
   {
@@ -210,7 +214,10 @@ impl<F: PrimeField> DensePolynomial<F> {
       }
     };
 
-    (self.commit_inner(&blinds.blinds, &gens.gens.gens_n), blinds)
+    Ok((
+      self.commit_inner(&blinds.blinds, &gens.gens.gens_n)?,
+      blinds,
+    ))
   }
 
   pub fn bound(&self, L: &[F]) -> Vec<F> {
@@ -327,7 +334,7 @@ impl<G: CurveGroup> PolyEvalProof<G> {
     gens: &PolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (PolyEvalProof<G>, G) {
+  ) -> Result<(PolyEvalProof<G>, G), ProofVerifyError> {
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
       PolyEvalProof::<G>::protocol_name(),
@@ -372,9 +379,9 @@ impl<G: CurveGroup> PolyEvalProof<G> {
       &R,
       Zr,
       blind_Zr,
-    );
+    )?;
 
-    (PolyEvalProof { proof }, C_Zr_prime)
+    Ok((PolyEvalProof { proof }, C_Zr_prime))
   }
 
   pub fn verify(
@@ -397,7 +404,8 @@ impl<G: CurveGroup> PolyEvalProof<G> {
     // compute a weighted sum of commitments and L
     let C_affine = G::normalize_batch(&comm.C);
 
-    let C_LZ = VariableBaseMSM::msm(C_affine.as_ref(), L.as_ref()).unwrap();
+    let C_LZ = VariableBaseMSM::msm(C_affine.as_ref(), L.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)?;
 
     self
       .proof
@@ -619,7 +627,7 @@ mod tests {
     assert_eq!(eval, G::ScalarField::from(28u64));
 
     let gens = PolyCommitmentGens::<G>::new(poly.get_num_vars(), b"test-two");
-    let (poly_commitment, blinds) = poly.commit(&gens, None);
+    let (poly_commitment, blinds) = poly.commit(&gens, None).unwrap();
 
     let mut random_tape = RandomTape::new(b"proof");
     let mut prover_transcript = Transcript::new(b"example");
@@ -632,7 +640,8 @@ mod tests {
       &gens,
       &mut prover_transcript,
       &mut random_tape,
-    );
+    )
+    .unwrap();
 
     let mut verifier_transcript = Transcript::new(b"example");
 

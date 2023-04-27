@@ -32,7 +32,7 @@ pub fn main() {
     let gens = SNARKGens::<G1Projective>::new(num_cons, num_vars, num_inputs, num_cons);
 
     // create a commitment to R1CSInstance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).unwrap();
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"snark_example");
@@ -44,7 +44,8 @@ pub fn main() {
       &inputs,
       &gens,
       &mut prover_transcript,
-    );
+    )
+    .unwrap();
 
     let mut proof_encoded = vec![];
     proof.serialize_compressed(&mut proof_encoded).unwrap();

@@ -137,7 +137,8 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
         // compute a weighted sum of the RHS
         let bases = vec![comm_claim_per_round.into_affine(), comm_eval.into_affine()];
 
-        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref()).unwrap();
+        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref())
+          .map_err(|_| ProofVerifyError::InternalError)?;
 
         let a = {
           // the vector to use to decommit for sum-check test
@@ -442,12 +443,15 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
     gens_n: &MultiCommitGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (
-    Self,
-    Vec<G::ScalarField>,
-    Vec<G::ScalarField>,
-    G::ScalarField,
-  )
+  ) -> Result<
+    (
+      Self,
+      Vec<G::ScalarField>,
+      Vec<G::ScalarField>,
+      G::ScalarField,
+    ),
+    ProofVerifyError,
+  >
   where
     Func: Fn(&G::ScalarField, &G::ScalarField) -> G::ScalarField,
   {
@@ -482,7 +486,7 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
         let evals = vec![eval_point_0, claim_per_round - eval_point_0, eval_point_2];
         let poly = UniPoly::from_evals(&evals);
         let comm_poly = poly.commit(gens_n, &blinds_poly[j]);
-        (poly, comm_poly)
+        (poly, comm_poly?)
       };
 
       // append the prover's message to the transcript
@@ -530,7 +534,8 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
         let target = w[0] * claim_per_round + w[1] * eval;
 
         let bases = vec![comm_claim_per_round.into_affine(), comm_eval.into_affine()];
-        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref()).unwrap();
+        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref())
+          .map_err(|_| ProofVerifyError::InternalError)?;
 
         let blind = {
           let blind_sc = if j == 0 {
@@ -579,7 +584,7 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
           &a,
           &target,
           &blind,
-        );
+        )?;
 
         (proof, eval, comm_eval)
       };
@@ -592,12 +597,12 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
       comm_evals.push(comm_claim_per_round);
     }
 
-    (
+    Ok((
       ZKSumcheckInstanceProof::new(comm_polys, comm_evals, proofs),
       r,
       vec![poly_A[0], poly_B[0]],
       blinds_evals[num_rounds - 1],
-    )
+    ))
   }
 
   pub fn prove_cubic_with_additive_term<Func>(
@@ -613,12 +618,15 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
     gens_n: &MultiCommitGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> (
-    Self,
-    Vec<G::ScalarField>,
-    Vec<G::ScalarField>,
-    G::ScalarField,
-  )
+  ) -> Result<
+    (
+      Self,
+      Vec<G::ScalarField>,
+      Vec<G::ScalarField>,
+      G::ScalarField,
+    ),
+    ProofVerifyError,
+  >
   where
     Func: Fn(&G::ScalarField, &G::ScalarField, &G::ScalarField, &G::ScalarField) -> G::ScalarField,
   {
@@ -679,7 +687,7 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
         ];
         let poly = UniPoly::from_evals(&evals);
         let comm_poly = poly.commit(gens_n, &blinds_poly[j]);
-        (poly, comm_poly)
+        (poly, comm_poly?)
       };
 
       // append the prover's message to the transcript
@@ -730,7 +738,8 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
 
         let bases = vec![comm_claim_per_round.into_affine(), comm_eval.into_affine()];
 
-        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref()).unwrap();
+        let comm_target = VariableBaseMSM::msm(bases.as_ref(), w.as_ref())
+          .map_err(|_| ProofVerifyError::InternalError)?;
 
         let blind = {
           let blind_sc = if j == 0 {
@@ -780,7 +789,7 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
           &a,
           &target,
           &blind,
-        );
+        )?;
 
         (proof, eval, comm_eval)
       };
@@ -792,11 +801,11 @@ impl<G: CurveGroup> ZKSumcheckInstanceProof<G> {
       comm_evals.push(comm_claim_per_round);
     }
 
-    (
+    Ok((
       ZKSumcheckInstanceProof::new(comm_polys, comm_evals, proofs),
       r,
       vec![poly_A[0], poly_B[0], poly_C[0], poly_D[0]],
       blinds_evals[num_rounds - 1],
-    )
+    ))
   }
 }

@@ -56,11 +56,13 @@ Some of our public APIs' style is inspired by the underlying crates we use.
     let (inst, vars, inputs) = Instance::produce_synthetic_r1cs(num_cons, num_vars, num_inputs);
 
     // create a commitment to the R1CS instance
-    let (comm, decomm) = SNARK::encode(&inst, &gens);
+    let (comm, decomm) = SNARK::encode(&inst, &gens).
+        unwrap();
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"snark_example");
-    let proof = SNARK::prove(&inst, &comm, &decomm, vars, &inputs, &gens, &mut prover_transcript);
+    let proof = SNARK::prove(&inst, &comm, &decomm, vars, &inputs, &gens, &mut prover_transcript)
+        .unwrap();
 
     // verify the proof of satisfiability
     let mut verifier_transcript = Transcript::new(b"snark_example");
@@ -93,7 +95,8 @@ Here is another example to use the NIZK variant of the Spartan proof system:
 
     // produce a proof of satisfiability
     let mut prover_transcript = Transcript::new(b"nizk_example");
-    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript);
+    let proof = NIZK::prove(&inst, vars, &inputs, &gens, &mut prover_transcript)
+        .unwrap();
 
     // verify the proof of satisfiability
     let mut verifier_transcript = Transcript::new(b"nizk_example");
@@ -132,7 +135,8 @@ Finally, we provide an example that specifies a custom R1CS instance instead of 
   let gens = SNARKGens::<G1Projective>::new(num_cons, num_vars, num_inputs, num_non_zero_entries);
 
   // create a commitment to the R1CS instance
-  let (comm, decomm) = SNARK::<G1Projective>::encode(&inst, &gens);
+  let (comm, decomm) = SNARK::<G1Projective>::encode(&inst, &gens)
+      .unwrap();
 
   // produce a proof of satisfiability
   let mut prover_transcript = Transcript::new(b"snark_example");
@@ -144,7 +148,7 @@ Finally, we provide an example that specifies a custom R1CS instance instead of 
     &assignment_inputs,
     &gens,
     &mut prover_transcript,
-  );
+  ).unwrap();
 
   // verify the proof of satisfiability
   let mut verifier_transcript = Transcript::new(b"snark_example");

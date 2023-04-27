@@ -1,3 +1,4 @@
+use super::errors::ProofVerifyError;
 use ark_ec::CurveGroup;
 use ark_ec::VariableBaseMSM;
 use ark_std::rand::SeedableRng;
@@ -66,7 +67,11 @@ impl<G: CurveGroup> MultiCommitGens<G> {
 
 pub trait Commitments<G: CurveGroup>: Sized {
   fn commit(&self, blind: &G::ScalarField, gens_n: &MultiCommitGens<G>) -> G;
-  fn batch_commit(inputs: &[Self], blind: &G::ScalarField, gens_n: &MultiCommitGens<G>) -> G;
+  fn batch_commit(
+    inputs: &[Self],
+    blind: &G::ScalarField,
+    gens_n: &MultiCommitGens<G>,
+  ) -> Result<G, ProofVerifyError>;
 }
 
 impl<G: CurveGroup> Commitments<G> for G::ScalarField {
@@ -76,7 +81,11 @@ impl<G: CurveGroup> Commitments<G> for G::ScalarField {
     gens_n.G[0] * self + gens_n.h * blind
   }
 
-  fn batch_commit(inputs: &[Self], blind: &G::ScalarField, gens_n: &MultiCommitGens<G>) -> G {
+  fn batch_commit(
+    inputs: &[Self],
+    blind: &G::ScalarField,
+    gens_n: &MultiCommitGens<G>,
+  ) -> Result<G, ProofVerifyError> {
     assert_eq!(gens_n.n, inputs.len());
 
     let mut bases = CurveGroup::normalize_batch(gens_n.G.as_ref());
@@ -84,6 +93,7 @@ impl<G: CurveGroup> Commitments<G> for G::ScalarField {
     bases.push(gens_n.h.into_affine());
     scalars.push(*blind);
 
-    VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap()
+    VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref())
+      .map_err(|_| ProofVerifyError::InternalError)
   }
 }

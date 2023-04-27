@@ -74,9 +74,9 @@ impl<F: PrimeField> Derefs<F> {
   pub fn commit<G: CurveGroup<ScalarField = F>>(
     &self,
     gens: &PolyCommitmentGens<G>,
-  ) -> DerefsCommitment<G> {
-    let (comm_ops_val, _blinds) = self.comb.commit(gens, None);
-    DerefsCommitment { comm_ops_val }
+  ) -> Result<DerefsCommitment<G>, ProofVerifyError> {
+    let (comm_ops_val, _blinds) = self.comb.commit(gens, None)?;
+    Ok(DerefsCommitment { comm_ops_val })
   }
 }
 
@@ -97,7 +97,7 @@ impl<G: CurveGroup> DerefsEvalProof<G> {
     gens: &PolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> PolyEvalProof<G> {
+  ) -> Result<PolyEvalProof<G>, ProofVerifyError> {
     assert_eq!(
       joint_poly.get_num_vars(),
       r.len() + evals.len().log_2() as usize
@@ -138,9 +138,9 @@ impl<G: CurveGroup> DerefsEvalProof<G> {
       gens,
       transcript,
       random_tape,
-    );
+    )?;
 
-    proof_derefs
+    Ok(proof_derefs)
   }
 
   // evalues both polynomials at r and produces a joint proof of opening
@@ -152,7 +152,7 @@ impl<G: CurveGroup> DerefsEvalProof<G> {
     gens: &PolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> Self {
+  ) -> Result<Self, ProofVerifyError> {
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
       DerefsEvalProof::<G>::protocol_name(),
@@ -165,9 +165,9 @@ impl<G: CurveGroup> DerefsEvalProof<G> {
       evals
     };
     let proof_derefs =
-      DerefsEvalProof::prove_single(&derefs.comb, r, evals, gens, transcript, random_tape);
+      DerefsEvalProof::prove_single(&derefs.comb, r, evals, gens, transcript, random_tape)?;
 
-    DerefsEvalProof { proof_derefs }
+    Ok(DerefsEvalProof { proof_derefs })
   }
 
   fn verify_single(
@@ -513,17 +513,20 @@ impl<F: PrimeField> SparseMatPolynomial<F> {
   pub fn multi_commit<G: CurveGroup<ScalarField = F>>(
     sparse_polys: &[&SparseMatPolynomial<F>],
     gens: &SparseMatPolyCommitmentGens<G>,
-  ) -> (
-    SparseMatPolyCommitment<G>,
-    MultiSparseMatPolynomialAsDense<F>,
-  ) {
+  ) -> Result<
+    (
+      SparseMatPolyCommitment<G>,
+      MultiSparseMatPolynomialAsDense<F>,
+    ),
+    ProofVerifyError,
+  > {
     let batch_size = sparse_polys.len();
     let dense = SparseMatPolynomial::multi_sparse_to_dense_rep(sparse_polys);
 
-    let (comm_comb_ops, _blinds_comb_ops) = dense.comb_ops.commit(&gens.gens_ops, None);
-    let (comm_comb_mem, _blinds_comb_mem) = dense.comb_mem.commit(&gens.gens_mem, None);
+    let (comm_comb_ops, _blinds_comb_ops) = dense.comb_ops.commit(&gens.gens_ops, None)?;
+    let (comm_comb_mem, _blinds_comb_mem) = dense.comb_mem.commit(&gens.gens_mem, None)?;
 
-    (
+    Ok((
       SparseMatPolyCommitment {
         batch_size,
         num_mem_cells: dense.row.audit_ts.len(),
@@ -532,7 +535,7 @@ impl<F: PrimeField> SparseMatPolynomial<F> {
         comm_comb_mem,
       },
       dense,
-    )
+    ))
   }
 }
 
@@ -757,7 +760,7 @@ impl<G: CurveGroup> HashLayerProof<G> {
     gens: &SparseMatPolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> Self {
+  ) -> Result<Self, ProofVerifyError> {
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
       HashLayerProof::<G>::protocol_name(),
@@ -780,7 +783,7 @@ impl<G: CurveGroup> HashLayerProof<G> {
       &gens.gens_derefs,
       transcript,
       random_tape,
-    );
+    )?;
     let eval_derefs = (eval_row_ops_val, eval_col_ops_val);
 
     // evaluate row_addr, row_read-ts, col_addr, col_read-ts, val at rand_ops
@@ -837,7 +840,7 @@ impl<G: CurveGroup> HashLayerProof<G> {
       &gens.gens_ops,
       transcript,
       random_tape,
-    );
+    )?;
 
     // form a single decommitment using comb_comb_mem at rand_mem
     let evals_mem: Vec<G::ScalarField> = vec![eval_row_audit_ts, eval_col_audit_ts];
@@ -876,9 +879,9 @@ impl<G: CurveGroup> HashLayerProof<G> {
       &gens.gens_mem,
       transcript,
       random_tape,
-    );
+    )?;
 
-    HashLayerProof {
+    Ok(HashLayerProof {
       eval_row: (eval_row_addr_vec, eval_row_read_ts_vec, eval_row_audit_ts),
       eval_col: (eval_col_addr_vec, eval_col_read_ts_vec, eval_col_audit_ts),
       eval_val: eval_val_vec,
@@ -886,7 +889,7 @@ impl<G: CurveGroup> HashLayerProof<G> {
       proof_ops,
       proof_mem,
       proof_derefs,
-    }
+    })
   }
 
   fn verify_helper(
@@ -1508,7 +1511,7 @@ impl<G: CurveGroup> PolyEvalNetworkProof<G> {
     gens: &SparseMatPolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> Self {
+  ) -> Result<Self, ProofVerifyError> {
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
       PolyEvalNetworkProof::<G>::protocol_name(),
@@ -1531,12 +1534,12 @@ impl<G: CurveGroup> PolyEvalNetworkProof<G> {
       gens,
       transcript,
       random_tape,
-    );
+    )?;
 
-    PolyEvalNetworkProof {
+    Ok(PolyEvalNetworkProof {
       proof_prod_layer,
       proof_hash_layer,
-    }
+    })
   }
 
   pub fn verify(
@@ -1646,7 +1649,7 @@ impl<G: CurveGroup> SparseMatPolyEvalProof<G> {
     gens: &SparseMatPolyCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> SparseMatPolyEvalProof<G> {
+  ) -> Result<SparseMatPolyEvalProof<G>, ProofVerifyError> {
     <Transcript as ProofTranscript<G>>::append_protocol_name(
       transcript,
       SparseMatPolyEvalProof::<G>::protocol_name(),
@@ -1668,7 +1671,7 @@ impl<G: CurveGroup> SparseMatPolyEvalProof<G> {
     // commit to non-deterministic choices of the prover
     let timer_commit = Timer::new("commit_nondet_witness");
     let comm_derefs = {
-      let comm = derefs.commit(&gens.gens_derefs);
+      let comm = derefs.commit(&gens.gens_derefs)?;
       comm.append_to_transcript(b"comm_poly_row_col_ops_val", transcript);
       comm
     };
@@ -1699,16 +1702,16 @@ impl<G: CurveGroup> SparseMatPolyEvalProof<G> {
         gens,
         transcript,
         random_tape,
-      );
+      )?;
       timer_eval_network.stop();
 
       poly_eval_network_proof
     };
 
-    SparseMatPolyEvalProof {
+    Ok(SparseMatPolyEvalProof {
       comm_derefs,
       poly_eval_network_proof,
-    }
+    })
   }
 
   pub fn verify(
@@ -1842,7 +1845,8 @@ mod tests {
     );
 
     // commitment
-    let (poly_comm, dense) = SparseMatPolynomial::multi_commit(&[&poly_M, &poly_M, &poly_M], &gens);
+    let (poly_comm, dense) =
+      SparseMatPolynomial::multi_commit(&[&poly_M, &poly_M, &poly_M], &gens).unwrap();
 
     // evaluation
     let rx: Vec<G::ScalarField> = (0..num_vars_x)
@@ -1864,7 +1868,8 @@ mod tests {
       &gens,
       &mut prover_transcript,
       &mut random_tape,
-    );
+    )
+    .unwrap();
 
     let mut verifier_transcript = Transcript::new(b"example");
     assert!(proof

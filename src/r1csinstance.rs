@@ -304,8 +304,9 @@ impl<F: PrimeField> R1CSInstance<F> {
   pub fn commit<G: CurveGroup<ScalarField = F>>(
     &self,
     gens: &R1CSCommitmentGens<G>,
-  ) -> (R1CSCommitment<G>, R1CSDecommitment<F>) {
-    let (comm, dense) = SparseMatPolynomial::multi_commit(&[&self.A, &self.B, &self.C], &gens.gens);
+  ) -> Result<(R1CSCommitment<G>, R1CSDecommitment<F>), ProofVerifyError> {
+    let (comm, dense) =
+      SparseMatPolynomial::multi_commit(&[&self.A, &self.B, &self.C], &gens.gens)?;
     let r1cs_comm = R1CSCommitment {
       num_cons: self.num_cons,
       num_vars: self.num_vars,
@@ -315,7 +316,7 @@ impl<F: PrimeField> R1CSInstance<F> {
 
     let r1cs_decomm = R1CSDecommitment { dense };
 
-    (r1cs_comm, r1cs_decomm)
+    Ok((r1cs_comm, r1cs_decomm))
   }
 }
 
@@ -333,7 +334,7 @@ impl<G: CurveGroup> R1CSEvalProof<G> {
     gens: &R1CSCommitmentGens<G>,
     transcript: &mut Transcript,
     random_tape: &mut RandomTape<G>,
-  ) -> R1CSEvalProof<G> {
+  ) -> Result<R1CSEvalProof<G>, ProofVerifyError> {
     let timer = Timer::new("R1CSEvalProof::prove");
     let proof = SparseMatPolyEvalProof::prove(
       &decomm.dense,
@@ -343,10 +344,10 @@ impl<G: CurveGroup> R1CSEvalProof<G> {
       &gens.gens,
       transcript,
       random_tape,
-    );
+    )?;
     timer.stop();
 
-    R1CSEvalProof { proof }
+    Ok(R1CSEvalProof { proof })
   }
 
   pub fn verify(
