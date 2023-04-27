@@ -436,7 +436,7 @@ impl<G: CurveGroup> R1CSProof<G> {
     let taus_bound_rx: G::ScalarField = (0..rx.len())
       .map(|i| rx[i] * tau[i] + (G::ScalarField::one() - rx[i]) * (G::ScalarField::one() - tau[i]))
       .product();
-    let expected_claim_post_phase1 = (*comm_prod_Az_Bz_claims - *comm_Cz_claim).mul(taus_bound_rx);
+    let expected_claim_post_phase1 = (*comm_prod_Az_Bz_claims - *comm_Cz_claim) * taus_bound_rx;
 
     // verify proof that expected_claim_post_phase1 == claim_post_phase1
     self.proof_eq_sc_phase1.verify(
@@ -505,7 +505,7 @@ impl<G: CurveGroup> R1CSProof<G> {
     // perform the final check in the second sum-check protocol
     let (eval_A_r, eval_B_r, eval_C_r) = evals;
     let expected_claim_post_phase2 =
-      comm_eval_Z_at_ry.mul(r_A * eval_A_r + r_B * eval_B_r + r_C * eval_C_r);
+      comm_eval_Z_at_ry * (r_A * eval_A_r + r_B * eval_B_r + r_C * eval_C_r);
 
     // verify proof that expected_claim_post_phase1 == claim_post_phase1
     self.proof_eq_sc_phase2.verify(

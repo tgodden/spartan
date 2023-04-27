@@ -69,7 +69,7 @@ impl<G: CurveGroup> KnowledgeProof<G> {
     let c = <Transcript as ProofTranscript<G>>::challenge_scalar(transcript, b"c");
 
     let lhs = self.z1.commit(&self.z2, gens_n);
-    let rhs = C.mul(c) + self.alpha;
+    let rhs = *C * c + self.alpha;
 
     if lhs == rhs {
       Ok(())
@@ -113,7 +113,7 @@ impl<G: CurveGroup> EqualityProof<G> {
     let C2 = v2.commit(s2, gens_n);
     <Transcript as ProofTranscript<G>>::append_point(transcript, b"C2", &C2);
 
-    let alpha = gens_n.h.mul(r);
+    let alpha = gens_n.h * r;
 
     <Transcript as ProofTranscript<G>>::append_point(transcript, b"alpha", &alpha);
 
@@ -144,10 +144,10 @@ impl<G: CurveGroup> EqualityProof<G> {
 
     let rhs = {
       let C = *C1 - *C2;
-      C.mul(c) + self.alpha
+      C * c + self.alpha
     };
 
-    let lhs = gens_n.h.mul(self.z);
+    let lhs = gens_n.h * self.z;
 
     if lhs == rhs {
       Ok(())
@@ -248,7 +248,7 @@ impl<G: CurveGroup> ProductProof<G> {
     z1: &G::ScalarField,
     z2: &G::ScalarField,
   ) -> bool {
-    let lhs = *P + X.mul(c);
+    let lhs = *P + *X * *c;
     let rhs = z1.commit(z2, gens_n);
 
     lhs == rhs
@@ -414,10 +414,10 @@ impl<G: CurveGroup> DotProductProof<G> {
     let c = <Transcript as ProofTranscript<G>>::challenge_scalar(transcript, b"c");
 
     let mut result =
-      Cx.mul(c) + self.delta == Commitments::batch_commit(self.z.as_ref(), &self.z_delta, gens_n);
+      *Cx * c + self.delta == Commitments::batch_commit(self.z.as_ref(), &self.z_delta, gens_n);
 
     let dotproduct_z_a = DotProductProof::<G>::compute_dotproduct(&self.z, a);
-    result &= Cy.mul(c) + self.beta == dotproduct_z_a.commit(&self.z_beta, gens_1);
+    result &= *Cy * c + self.beta == dotproduct_z_a.commit(&self.z_beta, gens_1);
 
     if result {
       Ok(())
@@ -582,8 +582,8 @@ impl<G: CurveGroup> DotProductProofLog<G> {
     let z1_s = &self.z1;
     let z2_s = &self.z2;
 
-    let lhs = (Gamma_hat.mul(c_s) + beta_s).mul(a_hat_s) + delta_s;
-    let rhs = (g_hat + gens.gens_1.G[0].mul(a_hat_s)).mul(z1_s) + gens.gens_1.h.mul(z2_s);
+    let lhs = (Gamma_hat * c_s + beta_s) * a_hat_s + delta_s;
+    let rhs = (g_hat + gens.gens_1.G[0] * a_hat_s) * z1_s + gens.gens_1.h * z2_s;
 
     assert_eq!(lhs, rhs);
 

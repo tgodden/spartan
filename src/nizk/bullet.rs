@@ -121,7 +121,7 @@ impl<G: CurveGroup> BulletReductionProof<G> {
         a_L[i] = a_L[i] * u + u_inv * a_R[i];
         b_L[i] = b_L[i] * u_inv + u * b_R[i];
 
-        G_L[i] = G_L[i].mul(u_inv) + G_R[i].mul(u);
+        G_L[i] = G_L[i] * u_inv + G_R[i] * u;
       }
 
       blind_fin = blind_fin + *blind_L * u * u + *blind_R * u_inv * u_inv;
@@ -134,7 +134,7 @@ impl<G: CurveGroup> BulletReductionProof<G> {
       G = G_L;
     }
 
-    let Gamma_hat = G[0].mul(a[0]) + Q.mul(a[0] * b[0]) + H.mul(blind_fin);
+    let Gamma_hat = G[0] * a[0] + *Q * a[0] * b[0] + *H * blind_fin;
 
     (
       BulletReductionProof { L_vec, R_vec },
@@ -240,7 +240,7 @@ impl<G: CurveGroup> BulletReductionProof<G> {
     let scalars = u_sq
       .into_iter()
       .chain(u_inv_sq.into_iter())
-      .chain(iter::once(G::ScalarField::one()))
+      .chain([G::ScalarField::one()])
       .collect::<Vec<_>>();
 
     let Gamma_hat = VariableBaseMSM::msm(bases.as_ref(), scalars.as_ref()).unwrap();

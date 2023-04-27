@@ -1,6 +1,5 @@
 use ark_ec::CurveGroup;
 use ark_ec::VariableBaseMSM;
-use ark_ff::PrimeField;
 use ark_std::rand::SeedableRng;
 use digest::{ExtendableOutput, Input};
 use rand_chacha::ChaCha20Rng;
@@ -74,7 +73,7 @@ impl<G: CurveGroup> Commitments<G> for G::ScalarField {
   fn commit(&self, blind: &G::ScalarField, gens_n: &MultiCommitGens<G>) -> G {
     assert_eq!(gens_n.n, 1);
 
-    gens_n.G[0].mul_bigint(self.into_bigint()) + gens_n.h.mul_bigint(blind.into_bigint())
+    gens_n.G[0] * self + gens_n.h * blind
   }
 
   fn batch_commit(inputs: &[Self], blind: &G::ScalarField, gens_n: &MultiCommitGens<G>) -> G {
