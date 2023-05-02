@@ -10,7 +10,7 @@ use bullet::BulletReductionProof;
 use merlin::Transcript;
 mod bullet;
 
-#[derive(CanonicalSerialize, CanonicalDeserialize, Debug)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, Debug, Clone)]
 pub struct KnowledgeProof<G: CurveGroup> {
   alpha: G,
   z1: G::ScalarField,
@@ -79,7 +79,7 @@ impl<G: CurveGroup> KnowledgeProof<G> {
   }
 }
 
-#[derive(CanonicalSerialize, CanonicalDeserialize, Debug)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, Debug, Clone)]
 pub struct EqualityProof<G: CurveGroup> {
   alpha: G,
   z: G::ScalarField,
@@ -157,7 +157,7 @@ impl<G: CurveGroup> EqualityProof<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct ProductProof<G: CurveGroup> {
   alpha: G,
   beta: G,
@@ -304,7 +304,7 @@ impl<G: CurveGroup> ProductProof<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct DotProductProof<G: CurveGroup> {
   delta: G,
   beta: G,
@@ -427,6 +427,7 @@ impl<G: CurveGroup> DotProductProof<G> {
   }
 }
 
+#[derive(Clone, Debug)]
 pub struct DotProductProofGens<G> {
   n: usize,
   pub gens_n: MultiCommitGens<G>,
@@ -440,7 +441,7 @@ impl<G: CurveGroup> DotProductProofGens<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct DotProductProofLog<G: CurveGroup> {
   bullet_reduction_proof: BulletReductionProof<G>,
   delta: G,

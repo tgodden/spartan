@@ -1,5 +1,5 @@
 use ark_serialize::SerializationError;
-use core::fmt::Debug;
+use core::fmt::{Debug, Display};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -39,3 +39,29 @@ impl From<SerializationError> for R1CSError {
     Self::ArkSerializationError(e)
   }
 }
+
+impl Display for R1CSError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::NonPowerOfTwoCons => write!(f, "the number of constraints was not a power of 2"),
+      Self::NonPowerOfTwoVars => write!(f, "the number of variables was not a power of 2"),
+      Self::InvalidNumberOfInputs => {
+        write!(f, "supplied the wrong number of inputs in an assignment")
+      }
+      Self::InvalidNumberOfVars => {
+        write!(f, "supplied the wrong number of variables in an assignment")
+      }
+      Self::InvalidScalar => write!(
+        f,
+        "the input does not parse into a valid Scalar in the field"
+      ),
+      Self::InvalidIndex => write!(
+        f,
+        "the supplied row or col in (row,col,val) tuple is out of range"
+      ),
+      Self::ArkSerializationError(e) => write!(f, "{e}"),
+    }
+  }
+}
+
+impl ark_std::error::Error for R1CSError {}

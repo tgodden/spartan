@@ -36,10 +36,12 @@ ark-ec = { version = "^0.4.0", default-features = false }
 ark-ff = { version = "^0.4.0", default-features = false }
 ark-std = { version = "^0.4.0", default-features = false }
 ark-serialize =  { version = "^0.4.0", default-features = false, features = [ "derive" ] }
-
+ark-crypto-primitives = { version = "^0.4.0", default-features = false, features = ["snark"] }
+ark-relations = { version = "^0.4.0", default-features = false }
 ark-bls12-381 = { version = "^0.4.0", default-features = false, features = [ "curve" ] }
 
 [dev-dependencies]
+ark-r1cs-std = { version = "^0.4.0", default-features = false}
 criterion = "0.3.1"
 
 

@@ -13,7 +13,7 @@ use ark_std::One;
 use core::iter;
 use merlin::Transcript;
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct BulletReductionProof<G: CurveGroup> {
   L_vec: Vec<G>,
   R_vec: Vec<G>,

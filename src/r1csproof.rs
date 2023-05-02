@@ -18,7 +18,7 @@ use ark_serialize::*;
 use ark_std::{One, Zero};
 use merlin::Transcript;
 
-#[derive(CanonicalSerialize, CanonicalDeserialize, Debug)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, Debug, Clone)]
 pub struct R1CSProof<G: CurveGroup> {
   comm_vars: PolyCommitment<G>,
   sc_proof_phase1: ZKSumcheckInstanceProof<G>,
@@ -31,6 +31,7 @@ pub struct R1CSProof<G: CurveGroup> {
   proof_eq_sc_phase2: EqualityProof<G>,
 }
 
+#[derive(Clone, Debug)]
 pub struct R1CSSumcheckGens<G> {
   gens_1: MultiCommitGens<G>,
   gens_3: MultiCommitGens<G>,
@@ -52,6 +53,7 @@ impl<G: CurveGroup> R1CSSumcheckGens<G> {
   }
 }
 
+#[derive(Clone, Debug)]
 pub struct R1CSGens<G> {
   gens_sc: R1CSSumcheckGens<G>,
   gens_pc: PolyCommitmentGens<G>,
@@ -444,7 +446,7 @@ impl<G: CurveGroup> R1CSProof<G> {
       transcript,
       &expected_claim_post_phase1,
       &comm_claim_post_phase1,
-    )?;
+    )?; // TODO here
 
     // derive three public challenges and then derive a joint claim
     let r_A = <Transcript as ProofTranscript<G>>::challenge_scalar(transcript, b"challenege_Az");

@@ -7,7 +7,7 @@ use super::random::RandomTape;
 use super::transcript::{AppendToTranscript, ProofTranscript};
 use ark_ec::CurveGroup;
 use ark_ec::VariableBaseMSM;
-use ark_ff::PrimeField;
+use ark_ff::{PrimeField, Field};
 use ark_serialize::*;
 use ark_std::Zero;
 use core::ops::Index;
@@ -16,13 +16,14 @@ use merlin::Transcript;
 #[cfg(feature = "multicore")]
 use rayon::prelude::*;
 
-#[derive(Debug, Clone)]
-pub struct DensePolynomial<F> {
+#[derive(Debug, Clone, CanonicalSerialize, CanonicalDeserialize)]
+pub struct DensePolynomial<F: Field> {
   num_vars: usize, // the number of variables in the multilinear polynomial
   len: usize,
   Z: Vec<F>, // evaluations of the polynomial in all the 2^num_vars Boolean inputs
 }
 
+#[derive(Clone, Debug)]
 pub struct PolyCommitmentGens<G> {
   pub gens: DotProductProofGens<G>,
 }
@@ -40,7 +41,7 @@ pub struct PolyCommitmentBlinds<F> {
   blinds: Vec<F>,
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct PolyCommitment<G: CurveGroup> {
   C: Vec<G>,
 }
@@ -289,7 +290,7 @@ impl<F: PrimeField> DensePolynomial<F> {
   }
 }
 
-impl<F> Index<usize> for DensePolynomial<F> {
+impl<F: Field> Index<usize> for DensePolynomial<F> {
   type Output = F;
 
   #[inline(always)]
@@ -308,7 +309,7 @@ impl<G: CurveGroup> AppendToTranscript<G> for PolyCommitment<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct PolyEvalProof<G: CurveGroup> {
   proof: DotProductProofLog<G>,
 }

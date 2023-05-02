@@ -9,7 +9,7 @@ use super::sparse_mlpoly::{
 use super::timer::Timer;
 use crate::transcript::AppendToTranscript;
 use ark_ec::CurveGroup;
-use ark_ff::PrimeField;
+use ark_ff::{Field, PrimeField};
 use ark_serialize::*;
 use ark_std::test_rng;
 use merlin::Transcript;
@@ -33,6 +33,7 @@ impl<G: CurveGroup> AppendToTranscript<G> for R1CSInstance<G::ScalarField> {
   }
 }
 
+#[derive(Clone, Debug)]
 pub struct R1CSCommitmentGens<G> {
   gens: SparseMatPolyCommitmentGens<G>,
 }
@@ -54,7 +55,7 @@ impl<G: CurveGroup> R1CSCommitmentGens<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct R1CSCommitment<G: CurveGroup> {
   num_cons: usize,
   num_vars: usize,
@@ -71,7 +72,8 @@ impl<G: CurveGroup> AppendToTranscript<G> for R1CSCommitment<G> {
   }
 }
 
-pub struct R1CSDecommitment<F> {
+#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
+pub struct R1CSDecommitment<F: Field> {
   dense: MultiSparseMatPolynomialAsDense<F>,
 }
 
@@ -319,7 +321,7 @@ impl<F: PrimeField> R1CSInstance<F> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct R1CSEvalProof<G: CurveGroup> {
   proof: SparseMatPolyEvalProof<G>,
 }

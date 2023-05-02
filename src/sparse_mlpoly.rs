@@ -38,13 +38,13 @@ pub struct SparseMatPolynomial<F: PrimeField> {
   M: Vec<SparseMatEntry<F>>,
 }
 
-pub struct Derefs<F> {
+pub struct Derefs<F: Field> {
   row_ops_val: Vec<DensePolynomial<F>>,
   col_ops_val: Vec<DensePolynomial<F>>,
   comb: DensePolynomial<F>,
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct DerefsCommitment<G: CurveGroup> {
   comm_ops_val: PolyCommitment<G>,
 }
@@ -80,7 +80,7 @@ impl<F: PrimeField> Derefs<F> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct DerefsEvalProof<G: CurveGroup> {
   proof_derefs: PolyEvalProof<G>,
 }
@@ -243,7 +243,8 @@ impl<G: CurveGroup> AppendToTranscript<G> for DerefsCommitment<G> {
   }
 }
 
-struct AddrTimestamps<F> {
+#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
+struct AddrTimestamps<F: Field> {
   ops_addr_usize: Vec<Vec<usize>>,
   ops_addr: Vec<DensePolynomial<F>>,
   read_ts: Vec<DensePolynomial<F>>,
@@ -304,7 +305,8 @@ impl<F: PrimeField> AddrTimestamps<F> {
   }
 }
 
-pub struct MultiSparseMatPolynomialAsDense<F> {
+#[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
+pub struct MultiSparseMatPolynomialAsDense<F: Field> {
   batch_size: usize,
   val: Vec<DensePolynomial<F>>,
   row: AddrTimestamps<F>,
@@ -313,6 +315,7 @@ pub struct MultiSparseMatPolynomialAsDense<F> {
   comb_mem: DensePolynomial<F>,
 }
 
+#[derive(Clone, Debug)]
 pub struct SparseMatPolyCommitmentGens<G> {
   gens_ops: PolyCommitmentGens<G>,
   gens_mem: PolyCommitmentGens<G>,
@@ -348,7 +351,7 @@ impl<G: CurveGroup> SparseMatPolyCommitmentGens<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct SparseMatPolyCommitment<G: CurveGroup> {
   batch_size: usize,
   num_ops: usize,
@@ -546,7 +549,7 @@ impl<F: PrimeField> MultiSparseMatPolynomialAsDense<F> {
 }
 
 #[derive(Debug)]
-struct ProductLayer<F> {
+struct ProductLayer<F: Field> {
   init: ProductCircuit<F>,
   read_vec: Vec<ProductCircuit<F>>,
   write_vec: Vec<ProductCircuit<F>>,
@@ -554,7 +557,7 @@ struct ProductLayer<F> {
 }
 
 #[derive(Debug)]
-struct Layers<F> {
+struct Layers<F: Field> {
   prod_layer: ProductLayer<F>,
 }
 
@@ -685,7 +688,7 @@ impl<F: PrimeField> Layers<F> {
 }
 
 #[derive(Debug)]
-struct PolyEvalNetwork<F> {
+struct PolyEvalNetwork<F: Field> {
   row_layers: Layers<F>,
   col_layers: Layers<F>,
 }
@@ -708,7 +711,7 @@ impl<F: PrimeField> PolyEvalNetwork<F> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 struct HashLayerProof<G: CurveGroup> {
   eval_row: (Vec<G::ScalarField>, Vec<G::ScalarField>, G::ScalarField),
   eval_col: (Vec<G::ScalarField>, Vec<G::ScalarField>, G::ScalarField),
@@ -1108,7 +1111,7 @@ impl<G: CurveGroup> HashLayerProof<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 struct ProductLayerProof<F: PrimeField> {
   eval_row: (F, Vec<F>, Vec<F>, F),
   eval_col: (F, Vec<F>, Vec<F>, F),
@@ -1489,7 +1492,7 @@ impl<F: PrimeField> ProductLayerProof<F> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 struct PolyEvalNetworkProof<G: CurveGroup> {
   proof_prod_layer: ProductLayerProof<G::ScalarField>,
   proof_hash_layer: HashLayerProof<G>,
@@ -1606,7 +1609,7 @@ impl<G: CurveGroup> PolyEvalNetworkProof<G> {
   }
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct SparseMatPolyEvalProof<G: CurveGroup> {
   comm_derefs: DerefsCommitment<G>,
   poly_eval_network_proof: PolyEvalNetworkProof<G>,

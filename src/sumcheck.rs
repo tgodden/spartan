@@ -16,7 +16,7 @@ use ark_std::{One, Zero};
 use itertools::izip;
 use merlin::Transcript;
 
-#[derive(CanonicalSerialize, CanonicalDeserialize, Debug)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, Debug, Clone)]
 pub struct SumcheckInstanceProof<F: PrimeField> {
   compressed_polys: Vec<CompressedUniPoly<F>>,
 }
@@ -67,7 +67,7 @@ impl<F: PrimeField> SumcheckInstanceProof<F> {
   }
 }
 
-#[derive(CanonicalSerialize, CanonicalDeserialize, Debug)]
+#[derive(CanonicalSerialize, CanonicalDeserialize, Debug, Clone)]
 pub struct ZKSumcheckInstanceProof<G: CurveGroup> {
   comm_polys: Vec<G>,
   comm_evals: Vec<G>,

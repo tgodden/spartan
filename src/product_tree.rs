@@ -5,12 +5,12 @@ use super::math::Math;
 use super::sumcheck::SumcheckInstanceProof;
 use super::transcript::ProofTranscript;
 use ark_ec::CurveGroup;
-use ark_ff::PrimeField;
+use ark_ff::{PrimeField, Field};
 use ark_serialize::*;
 use merlin::Transcript;
 
 #[derive(Debug)]
-pub struct ProductCircuit<F> {
+pub struct ProductCircuit<F: Field> {
   left_vec: Vec<DensePolynomial<F>>,
   right_vec: Vec<DensePolynomial<F>>,
 }
@@ -64,7 +64,7 @@ impl<F: PrimeField> ProductCircuit<F> {
   }
 }
 
-pub struct DotProductCircuit<F> {
+pub struct DotProductCircuit<F: Field> {
   left: DensePolynomial<F>,
   right: DensePolynomial<F>,
   weight: DensePolynomial<F>,
@@ -139,7 +139,7 @@ impl<F: PrimeField> LayerProof<F> {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct LayerProofBatched<F: PrimeField> {
   pub proof: SumcheckInstanceProof<F>,
   pub claims_prod_left: Vec<F>,
@@ -170,7 +170,7 @@ pub struct ProductCircuitEvalProof<F: PrimeField> {
   proof: Vec<LayerProof<F>>,
 }
 
-#[derive(Debug, CanonicalSerialize, CanonicalDeserialize)]
+#[derive(Debug, CanonicalSerialize, CanonicalDeserialize, Clone)]
 pub struct ProductCircuitEvalProofBatched<F: PrimeField> {
   proof: Vec<LayerProofBatched<F>>,
   claims_dotp: (Vec<F>, Vec<F>, Vec<F>),
